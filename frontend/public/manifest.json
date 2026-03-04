@@ -1,0 +1,22 @@
+{
+    "name": "C.R.U.Y.F.F. Tactical Glass",
+    "short_name": "Tactical Glass",
+    "description": "Real-time topological football analytics overlay",
+    "start_url": "/",
+    "display": "standalone",
+    "orientation": "landscape",
+    "background_color": "#06060c",
+    "theme_color": "#00b4d8",
+    "icons": [
+        {
+            "src": "/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}

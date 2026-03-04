@@ -1,0 +1,344 @@
+/* ═══════════════════════════════════════════════════════════════════
+   C.R.U.Y.F.F. — Tactical Glass Design System
+   Dark theme, glassmorphism, Inter font, tablet-optimized
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Reset ──────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #06060c;
+  color: #e4e4ef;
+  -webkit-font-smoothing: antialiased;
+  /* Fix F22: Safari gesture lockdown — prevents pull-to-refresh,
+     edge-swipe navigation, and rubber-banding on iPadOS */
+  touch-action: none;
+  overscroll-behavior: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ── CSS Variables ──────────────────────────────────────────────── */
+:root {
+  /* Backgrounds */
+  --bg-primary: #06060c;
+  --bg-surface: rgba(14, 14, 24, 0.85);
+  --bg-glass: rgba(20, 20, 36, 0.65);
+
+  /* Accent palette */
+  --flow-blue: #00b4d8;
+  --flow-cyan: #00f5d4;
+  --pulse-green: #22c55e;
+  --pulse-amber: #fbbf24;
+  --pulse-red: #ef4444;
+  --ghost-white: #f0f0ff;
+
+  /* Text */
+  --text-primary: #e4e4ef;
+  --text-secondary: #8888aa;
+  --text-muted: #555566;
+
+  /* Borders */
+  --border-subtle: rgba(100, 100, 140, 0.15);
+
+  /* Glassmorphism */
+  --glass-blur: 20px;
+  --glass-border: 1px solid rgba(100, 100, 160, 0.12);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+
+  /* Sizing */
+  --touch-min: 48px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+}
+
+/* ── Typography ─────────────────────────────────────────────────── */
+.mono {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+.label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ── Layout ─────────────────────────────────────────────────────── */
+.app-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.video-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+  opacity: 0.7;
+}
+
+.canvas-layer {
+  position: absolute !important;
+  inset: 0;
+  z-index: 1;
+}
+
+/* ── HUD Sidebar ────────────────────────────────────────────────── */
+.hud {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  bottom: 16px;
+  width: 280px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.hud-panel {
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow);
+  padding: 16px;
+  overflow: hidden;
+}
+
+.hud-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+/* ── Connection Status ──────────────────────────────────────────── */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.status-dot.live {
+  background: var(--pulse-green);
+  box-shadow: 0 0 8px var(--pulse-green);
+}
+
+.status-dot.reconnecting {
+  background: var(--pulse-amber);
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+.status-dot.disconnected {
+  background: var(--pulse-red);
+}
+
+/* ── Void Card ──────────────────────────────────────────────────── */
+.void-metric {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.void-metric .value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--flow-cyan);
+  line-height: 1;
+}
+
+.void-metric .unit {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* ── Bio Alert Row ──────────────────────────────────────────────── */
+.bio-alert-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.bio-alert-row:last-child {
+  border-bottom: none;
+}
+
+.bio-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.bio-badge.green {
+  background: var(--pulse-green);
+}
+
+.bio-badge.amber {
+  background: var(--pulse-amber);
+  color: #1a1a2e;
+}
+
+.bio-badge.red {
+  background: var(--pulse-red);
+  animation: pulse-glow 1s ease-in-out infinite;
+}
+
+.bio-info {
+  flex: 1;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.bio-info strong {
+  color: var(--text-primary);
+}
+
+/* ── Optimize Button ────────────────────────────────────────────── */
+.optimize-btn {
+  width: 100%;
+  min-height: var(--touch-min);
+  border: none;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--flow-blue) 0%, var(--flow-cyan) 100%);
+  color: #0a0a0f;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.optimize-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0, 180, 216, 0.35);
+}
+
+.optimize-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.optimize-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.optimize-btn .spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(10, 10, 15, 0.3);
+  border-top-color: #0a0a0f;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* ── Ghost Result ───────────────────────────────────────────────── */
+.xt-result {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.xt-result .value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--ghost-white);
+}
+
+.xt-result .unit {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+/* ── System Tag ─────────────────────────────────────────────────── */
+.system-tag {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  z-index: 10;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.5;
+}
+
+/* ── Animations ─────────────────────────────────────────────────── */
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fade-in 0.4s ease-out both;
+}

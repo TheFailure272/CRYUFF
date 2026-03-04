@@ -1,0 +1,39 @@
+[project]
+name = "cruyff"
+version = "0.1.0"
+description = "Computational Real-time Unified Yield Field Framework — tactical analysis via TDA, bio-kinetics, and trajectory diffusion"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "websockets>=14.0",
+    "redis[hiredis]>=5.2.0",
+    "gudhi>=3.10.1",
+    "numpy>=1.26.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.7.0",
+]
+
+[project.optional-dependencies]
+engines = [
+    "ultralytics>=8.3.0",
+    "diffusers>=0.31.0",
+    "torch>=2.5.0",
+    "pandas>=2.2.0",
+    "scipy>=1.14.0",
+]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.25.0",
+]
+
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["server*", "engine*", "shared*", "workers*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

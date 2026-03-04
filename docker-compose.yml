@@ -1,0 +1,50 @@
+# ──────────────────────────────────────────────────────────────
+# C.R.U.Y.F.F. — Docker Compose (Edge Server Stack)
+# ──────────────────────────────────────────────────────────────
+# Deploy on the stadium edge server:
+#   docker compose up -d
+# ──────────────────────────────────────────────────────────────
+
+services:
+  # ── Redis (telemetry store + pub/sub) ─────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  # ── Backend (FastAPI + engines) ───────────────────────────
+  backend:
+    build:
+      context: .
+      target: production
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - LOG_LEVEL=info
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Frontend (Vite + nginx) ──────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      target: production
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  redis_data:
