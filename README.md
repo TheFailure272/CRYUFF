@@ -159,33 +159,81 @@ Every feature below is a working module. Every fix is a response to a physical, 
 
 ## 📐 Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     STADIUM EDGE SERVER                         │
-│                                                                 │
-│  ┌──────────┐   ┌──────────────┐   ┌──────────────────────────┐│
-│  │  Redis    │◀─▶│  FastAPI GW   │◀─▶│  Worker Process          ││
-│  │  (pub/sub │   │  (main.py)   │   │  TopologicalSolver       ││
-│  │   + ZSET) │   │              │   │  BioKineticEngine        ││
-│  └──────────┘   │  /ws/tracking│   │  GhostTrajectoryEngine   ││
-│       ▲         │  /ws/ghost   │   └──────────────────────────┘│
-│       │         │  /ws/voice   │                                │
-│       │         │  /ws/omnicam │   ┌──────────────────────────┐│
-│       │         │  /api/push   │   │  Engine Layer              ││
-│       │         │  /health     │   │  SensorEKF + SpatialBridge ││
-│       │         └──────────────┘   │  SetPieceSolver (JAX)      ││
-│       │                            │  VoiceEngine (Whisper)     ││
-│       │         ┌──────────────┐   │  VolumetricEngine (3DGS)  ││
-│       └────────▶│ PushService  │   │  FusionEngine             ││
-│                 │ DressingRoom │   │  ClipEngine               ││
-│                 └──────────────┘   └──────────────────────────┘│
-└─────────────────────────────────────────────────────────────────┘
-         │                    │                    │
-    ┌────▼────┐         ┌────▼────┐         ┌─────▼─────┐
-    │  iPad   │         │ Apple TV│         │ Broadcast │
-    │ Tactical│         │ Dressing│         │ Camera    │
-    │  Glass  │         │  Room   │         │ Feeds     │
-    └─────────┘         └─────────┘         └───────────┘
+```mermaid
+graph TB
+    subgraph Stadium Edge Server
+        direction TB
+        Redis["Redis<br/>pub/sub + ZSET"]
+
+        subgraph Gateway["FastAPI Gateway (main.py)"]
+            WS_T["/ws/tracking<br/>25Hz ingest"]
+            WS_G["/ws/ghost<br/>Ghost RPC"]
+            WS_V["/ws/voice<br/>Voice NLP"]
+            WS_O["/ws/omnicam<br/>3DGS"]
+            API_P["POST /api/push"]
+            WS_D["/ws/dressing-room"]
+            RTC["POST /webrtc/offer"]
+        end
+
+        subgraph Worker["Worker Process"]
+            TS["TopologicalSolver<br/>β₁ Persistent Homology"]
+            BKE["BioKineticEngine<br/>YOLOv8 Cognitive Load"]
+            GTE["GhostTrajectoryEngine<br/>Diffusion + xT"]
+        end
+
+        subgraph Engines["Engine Layer"]
+            EKF["SensorEKF<br/>Joseph-form Covariance"]
+            SB["SpatialBridge<br/>Dynamic Affine + F45"]
+            SPS["SetPieceSolver<br/>JAX RK4 + Magnus"]
+            VE["VoiceEngine<br/>Whisper + F46 Diarization"]
+            CE["ClipEngine<br/>F44 VAR Clock"]
+            VOL["VolumetricEngine<br/>3DGS + SAM + F47 SH"]
+            FE["FusionEngine<br/>Collapse / Masking"]
+        end
+
+        subgraph Infra["Infrastructure"]
+            SHM["SHMBuffer"]
+            CFG["Config (Pydantic)"]
+            GPU["GPU Isolation"]
+        end
+    end
+
+    subgraph Clients
+        iPad["iPad<br/>Tactical Glass"]
+        TV["Apple TV<br/>Dressing Room"]
+        CAM["Stadium Cameras<br/>4+ PTZ Feeds"]
+        WEAR["Wearables<br/>GPS + HR"]
+    end
+
+    iPad -->|"tracking 25Hz"| WS_T
+    iPad -->|"voice PCM16"| WS_V
+    iPad -->|"touch pose"| WS_O
+    iPad -->|"optimize"| WS_G
+    iPad -->|"push"| API_P
+    TV -->|"Ethernet LAN"| WS_D
+    CAM -->|"RTSP"| VOL
+    WEAR -->|"HTTP/MQTT"| EKF
+
+    WS_T --> Redis
+    Redis --> Worker
+    Worker --> Redis
+    Redis --> Gateway
+    API_P --> Redis
+    Redis --> WS_D
+
+    WS_V --> VE
+    VE --> CE
+    WS_O --> VOL
+    WS_G --> GTE
+    EKF --> SB
+    SB --> FE
+    EKF --> FE
+
+    style Redis fill:#dc3545,color:#fff
+    style iPad fill:#0d6efd,color:#fff
+    style TV fill:#198754,color:#fff
+    style CAM fill:#6f42c1,color:#fff
+    style WEAR fill:#fd7e14,color:#fff
 ```
 
 ---
