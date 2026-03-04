@@ -147,20 +147,22 @@ def _compute_cd_reynolds(speed, rho):
     decelerates, flow reverts to laminar, Cd spikes, and the ball
     'knuckles' downward — the infamous free-kick dip.
 
+    Uses jnp.where instead of Python if/elif for JAX traceability.
+
     Returns
     -------
     float : Cd at the current velocity
     """
+    xnp = jnp if HAS_JAX else np
+
     Re = rho * speed * BALL_DIAMETER / AIR_VISCOSITY
 
-    if Re < RE_CRITICAL_LOW:
-        return CD_SUBCRITICAL      # standard football Cd
-    elif Re > RE_CRITICAL_HIGH:
-        return CD_TURBULENT        # post-crisis (fast strikes)
-    else:
-        # Smooth transition through the crisis zone
-        t = (Re - RE_CRITICAL_LOW) / (RE_CRITICAL_HIGH - RE_CRITICAL_LOW)
-        return CD_SUBCRITICAL + t * (CD_TURBULENT - CD_SUBCRITICAL)
+    # Smooth piecewise: subcritical → crisis interpolation → turbulent
+    # Using xnp.where for JAX-traceable control flow (no Python if/elif)
+    t = (Re - RE_CRITICAL_LOW) / (RE_CRITICAL_HIGH - RE_CRITICAL_LOW + 1e-8)
+    t = xnp.clip(t, 0.0, 1.0)
+    cd = CD_SUBCRITICAL + t * (CD_TURBULENT - CD_SUBCRITICAL)
+    return cd
 
 
 def _ball_acceleration(pos, vel, omega, rho, t0):
@@ -186,7 +188,8 @@ def _ball_acceleration(pos, vel, omega, rho, t0):
     omega_hat = omega_decayed / omega_mag
 
     # Fix F41: Reynolds-dependent drag coefficient
-    cd = _compute_cd_reynolds(float(speed), float(rho))
+    # No float() cast — must remain a JAX-traced value
+    cd = _compute_cd_reynolds(speed, rho)
 
     # Drag force (per unit mass)
     f_drag = -0.5 * cd * rho * BALL_AREA * speed ** 2 * v_hat / BALL_MASS
@@ -242,22 +245,56 @@ def _simulate_single(v0, omega0, origin, rho, dt=0.004, max_steps=500):
     Returns
     -------
     landing_xy : array (2,) — [x, y] where ball hits ground
+
+    Notes
+    -----
+    Uses jax.lax.fori_loop when JAX is available (no Python for/if).
     """
     xnp = jnp if HAS_JAX else np
 
-    pos = origin.copy() if not HAS_JAX else origin
-    vel = v0.copy() if not HAS_JAX else v0
+    if HAS_JAX:
+        from jax import lax
 
-    for step in range(max_steps):
-        t = step * dt
-        pos, vel = _rk4_step(pos, vel, omega0, rho, t, dt)
+        def body_fn(step, state):
+            pos, vel, landed_pos, has_landed = state
+            t = step * dt
+            new_pos, new_vel = _rk4_step(pos, vel, omega0, rho, t, dt)
 
-        # Ball hit the ground
-        if pos[2] <= 0:
-            return pos[:2]
+            # Check ground contact: freeze position on first contact
+            hit_ground = new_pos[2] <= 0.0
+            should_update = ~has_landed & hit_ground
 
-    # Didn't land in time — return last position
-    return pos[:2]
+            # If just landed, save position; if already landed, keep old
+            new_landed = jnp.where(should_update, new_pos[:2], landed_pos)
+            new_has_landed = has_landed | hit_ground
+
+            # If landed, freeze physics state (stop simulating)
+            final_pos = jnp.where(new_has_landed, pos, new_pos)
+            final_vel = jnp.where(new_has_landed, vel, new_vel)
+
+            return (final_pos, final_vel, new_landed, new_has_landed)
+
+        init_state = (
+            origin,                         # pos
+            v0,                             # vel
+            origin[:2],                     # landed_pos (placeholder)
+            jnp.array(False),               # has_landed
+        )
+
+        _, _, landed_pos, _ = lax.fori_loop(0, max_steps, body_fn, init_state)
+        return landed_pos
+    else:
+        # NumPy fallback: use Python for + if
+        pos = origin.copy()
+        vel = v0.copy()
+
+        for step in range(max_steps):
+            t = step * dt
+            pos, vel = _rk4_step(pos, vel, omega0, rho, t, dt)
+            if pos[2] <= 0:
+                return pos[:2]
+
+        return pos[:2]
 
 
 # ─── Vectorized Solver ──────────────────────────────────────────
